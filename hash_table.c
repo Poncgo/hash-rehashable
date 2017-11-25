@@ -44,7 +44,7 @@ static inline void INIT_HASH(void)
 {
     s_hash.rehashindex = -1;
     INIT_HASH_TB(&s_hash.ht[0], HASH_TB_MIN_NUM);
-   
+
 }
 
 static inline void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
@@ -71,7 +71,7 @@ static inline unsigned int hash_code(char* str, unsigned int len)
 unsigned int DJBHash(char *str)
 {
     unsigned int hash = 5381;
- 
+
     while (*str)
     {
         hash = ((hash << 5) + hash) + (*str++); /* times 33 */
@@ -83,8 +83,8 @@ unsigned int DJBHash(char *str)
 
 /*
  *
- * 
- *    
+ *
+ *
 */
 static inline int rehash_step(struct hash_t *h)
 {
@@ -92,14 +92,20 @@ static inline int rehash_step(struct hash_t *h)
     int rehash_step = 3;
     unsigned int idx = 0;
     hash_entity *p_entity = NULL;
-    struct hlist_head *he = NULL;
+
     struct hlist_node *node = NULL;
 
     if (!is_rehashing(h)) return 0; // no rehash happen & return;
 
     while (--rehash_step && (0 != h->ht[0].used))
     {
-
+        // rehash index can't bigger than size
+        if (h->rehashindex >= h->ht[0].size)
+        {
+            printf("error happened rehashindex %d >= size %d\n",
+                h->rehashindex, h->ht[0].size);
+                return -1;
+        }
         while(h->ht[0].table[h->rehashindex].first == NULL)
         {
             h->rehashindex++;
@@ -110,9 +116,15 @@ static inline int rehash_step(struct hash_t *h)
         {
             p_entity = (hash_entity *)node;
             idx = DJBHash(p_entity->key) % h->ht[1].size;
+
+            hlist_del(node); // delete from ht[0]
+            // add node to ht[1]
             hlist_add_head(node, (h->ht[1].table + idx));
+
             h->ht[0].used--;
             h->ht[1].used++;
+
+            node = h->ht[0].table[h->rehashindex].first;
         }
         h->ht[0].table[h->rehashindex].first = NULL;
         h->rehashindex++;
@@ -122,7 +134,10 @@ static inline int rehash_step(struct hash_t *h)
     {
         free(h->ht[0].table);
         h->ht[0] = h->ht[1];
-
+        h->rehashindex = -1;
+        h->ht[1].table = NULL;
+        h->ht[1].size = 0;
+        h->ht[1].used = 0;
     }
     return 0;
 }
@@ -139,8 +154,8 @@ static inline int need_expand(struct hash_t *h)
         printf("%s, %d:max number reached\n", __FILE__, __LINE__);
         return -1;
     }
-    
-    if ((h->ht[0].size * 0.9) <= h->ht[0].used) 
+
+    if ((int)(h->ht[0].size * 0.9) <= h->ht[0].used)
     {
         return 1;
     }
@@ -239,14 +254,14 @@ int hash_add(char *key, char *val)
         printf( "NULL POINTER of key or val\n");
         return -1;
     }
-        
+
     if (is_rehashing(&s_hash)) rehash_step(&s_hash);
 
     if  ((1 == need_expand(&s_hash)))
     {
         unsigned int new = (s_hash.ht[0].size) << 1;
         hash_expand(&s_hash, new);
-    } 
+    }
 
     hash = DJBHash(key);
 
@@ -256,14 +271,14 @@ int hash_add(char *key, char *val)
         return -1;
     }
     // if rehashing ,new entity will put to new table [1]. else table[0] will be choosed.
-    tb = is_rehashing(&s_hash) ? (s_hash.ht + 1) : (s_hash.ht); 
+    tb = is_rehashing(&s_hash) ? (s_hash.ht + 1) : (s_hash.ht);
     p_entity = malloc(sizeof(hash_entity));
     k = malloc(l_k * sizeof(char));
     v = malloc(l_v * sizeof(char));
 
     strcpy(k, key);
     strcpy(v, val);
-    
+
     INIT_HASH_ENTITY(p_entity, k, v);
     he = (tb->table + idx);
     hlist_add_head(&(p_entity->node), he);
@@ -280,56 +295,91 @@ int hash_del(char *key, char *val)
     int table_index = 0;
     hash_entity *p_entity = NULL;
     struct hlist_node *node = NULL;
-    
+
     if (is_rehashing(&s_hash)) rehash_step(&s_hash);
 
-    if (need_resize(&s_hash)) 
+    if (need_resize(&s_hash))
     {
         unsigned int new = (s_hash.ht[0].size) >> 1;
         hash_expand(&s_hash, new);
     }
-    
+
     hash = DJBHash(key);
 
     for (table_index = 0; table_index < 2; ++table_index)
     {
         idx = hash % s_hash.ht[0].size;
-        if ()
-
-
-
+        if ((is_rehashing(&s_hash))
+            && (idx < s_hash.rehashindex)
+            && (0 == table_index))
+        {
+            continue;
+        }
+        node = s_hash.ht[table_index].table[idx].first;
+        while(node)
+        {
+            p_entity = (hash_entity *)node;
+            if (0 == strcmp(key, p_entity->key))
+            {
+                hlist_del(node);
+                strcpy(val, p_entity->val);
+                free(p_entity->key);
+                free(p_entity->val);
+                free(p_entity);
+                return 1;
+            }
+            node = node->next;
+        }
+        if (!is_rehashing(&s_hash))
+        {
+            break;
+        }
     }
-
-
-
-    free(p_entity->key);
-    free(p_entity->val);
-    free(p_entity);
-
     return 0;
 }
 
 int hash_find(char *key, char *val)
 {
-    int idx = hash_idx(key);
+    int idx = 0;
+    unsigned int hash = 0;
+    int table_index = 0;
     hash_entity *p_entity = NULL;
+    struct hlist_node *node = NULL;
 
-    if (0 > idx)
+    if (is_rehashing(&s_hash)) rehash_step(&s_hash);
+
+    if (need_resize(&s_hash))
     {
-        printf( "key error\n");
-        return -1;
+        unsigned int new = (s_hash.ht[0].size) >> 1;
+        hash_expand(&s_hash, new);
     }
 
-    p_entity = hash_is_exist(key);
-    if (NULL == p_entity)
-    {
-        printf( "no key found while del\n");
-        return -1;
-    }
+    hash = DJBHash(key);
 
-    if (NULL != val)
+    for (table_index = 0; table_index < 2; ++table_index)
     {
-        strcpy(val, p_entity->val);
+        idx = hash % s_hash.ht[0].size;
+        if ((is_rehashing(&s_hash))
+            && (idx < s_hash.rehashindex)
+            && (0 == table_index))
+        {
+            continue;
+        }
+        node = s_hash.ht[table_index].table[idx].first;
+        while(node)
+        {
+            p_entity = (hash_entity *)node;
+            if (0 == strcmp(key, p_entity->key))
+            {
+                strcpy(val, p_entity->val);
+                return 1;
+            }
+            node = node->next;
+        }
+        if (!is_rehashing(&s_hash))
+        {
+            break;
+        }
     }
     return 0;
 }
@@ -338,7 +388,7 @@ int hash_find(char *key, char *val)
 /*
     init hash table by min size HASH_TB_MIN_NUM
 */
-static inline void HASH_INIT(void)
+void HASH_INIT(void)
 {
     INIT_HASH();
 }
@@ -346,11 +396,29 @@ static inline void HASH_INIT(void)
 
 void HASH_DEL(void)
 {
-    if ((0 == ht.size) && ( NULL == ht.hash_table))
+    int table_index = 0;
+    int hash_index = 0;
+    struct hlist_node *node = NULL;
+    hash_entity *p_entity = NULL;
+    for (table_index = 0; table_index < 2; table_index++)
     {
-        return;
+        for (hash_index = 0; hash_index < s_hash.ht[table_index].size; hash_index++)
+        {
+            node = s_hash.ht[table_index].table[hash_index].first;
+            while(node)
+            {
+                hlist_del(node);
+                p_entity = (hash_entity *)node;
+                free(p_entity->key);
+                free(p_entity->val);
+                free(p_entity);
+                node = s_hash.ht[table_index].table[hash_index].first;
+            }
+        }
+        if (!is_rehashing(&s_hash))
+        {
+            break;
+        }
     }
-
-    ht.size = 0;
     //del element
 }

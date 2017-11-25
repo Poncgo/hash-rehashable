@@ -1,3 +1,6 @@
+#ifndef __LIST_H__
+#define __LIST_H__
+
 #include <unistd.h>
 
 struct hlist_head {
@@ -92,7 +95,7 @@ static inline void hlist_add_fake(struct hlist_node *n)
 	n->pprev = &n->next;
 }
 
-static inline bool hlist_fake(struct hlist_node *h)
+static inline int hlist_fake(struct hlist_node *h)
 {
 	return h->pprev == &h->next;
 }
@@ -101,7 +104,7 @@ static inline bool hlist_fake(struct hlist_node *h)
  * Check whether the node is the only node of the head without
  * accessing head:
  */
-static inline bool
+static inline int
 hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
 {
 	return !n->next && n->pprev == &h->first;
@@ -112,11 +115,11 @@ hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
  * reference of the first entry if it exists.
  */
 static inline void hlist_move_list(struct hlist_head *old,
-				   struct hlist_head *new)
+				   struct hlist_head *n)
 {
-	new->first = old->first;
-	if (new->first)
-		new->first->pprev = &new->first;
+	n->first = old->first;
+	if (n->first)
+		n->first->pprev = &n->first;
 	old->first = NULL;
 }
 
@@ -175,3 +178,6 @@ static inline void hlist_move_list(struct hlist_head *old,
 	for (pos = hlist_entry_safe((head)->first, typeof(*pos), member);\
 	     pos && ({ n = pos->member.next; 1; });			\
 	     pos = hlist_entry_safe(n, typeof(*pos), member))
+
+
+#endif

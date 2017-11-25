@@ -27,7 +27,7 @@
 */
 typedef struct hash_table_t
 {
-    struct hlist_head *table; // table to store 
+    struct hlist_head *table; // table to store
     unsigned int size;        // size of hash table
     unsigned int used;        // number of entity in table
 }hash_tb;
@@ -41,14 +41,14 @@ typedef struct hash_table_t
 */
 struct hash_t
 {
-    
-    hash_tb ht[2];           
-    unsigned int rehashindex;
+
+    hash_tb ht[2];
+    int rehashindex;
 }Hash;
 
 /*
     @struct hlist_node: node to index the entity in table,
-    @char *key : key of entity 
+    @char *key : key of entity
     @char *val : value of entity
 */
 typedef struct hash_entity_t
@@ -86,6 +86,10 @@ int hash_del(char *key, char *val);
 */
 int hash_find(char *key, char *val);
 
+
+void HASH_INIT(void);
+
+void HASH_DEL(void);
 
 
 #endif // HASH_TABLE_H_INCLUDED
