@@ -348,12 +348,6 @@ int hash_find(char *key, char *val)
 
     if (is_rehashing(&s_hash)) rehash_step(&s_hash);
 
-    if (need_resize(&s_hash))
-    {
-        unsigned int new = (s_hash.ht[0].size) >> 1;
-        hash_expand(&s_hash, new);
-    }
-
     hash = DJBHash(key);
 
     for (table_index = 0; table_index < 2; ++table_index)
@@ -415,6 +409,9 @@ void HASH_DEL(void)
                 node = s_hash.ht[table_index].table[hash_index].first;
             }
         }
+
+        free(s_hash.ht[table_index].table);
+
         if (!is_rehashing(&s_hash))
         {
             break;
