@@ -1,7 +1,7 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-#include <unistd.h>
+//#include <unistd.h>
 
 struct hlist_head {
 	struct hlist_node *first;
@@ -11,29 +11,30 @@ struct hlist_node {
 	struct hlist_node *next, **pprev;
 };
 
-
-#define HLIST_HEAD_INIT { .first = NULL }
-#define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
+//#define HLIST_HEAD_INIT { .first = NULL }
+//#define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
 #define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
+
 #define WRITE_ONCE(a, b) (a) = (b)
 #define READ_ONCE(a) (a)
-static inline void INIT_HLIST_NODE(struct hlist_node *h)
+
+static  void INIT_HLIST_NODE(struct hlist_node *h)
 {
 	h->next = NULL;
 	h->pprev = NULL;
 }
 
-static inline int hlist_unhashed(const struct hlist_node *h)
+static  int hlist_unhashed(const struct hlist_node *h)
 {
 	return !h->pprev;
 }
 
-static inline int hlist_empty(const struct hlist_head *h)
+static  int hlist_empty(const struct hlist_head *h)
 {
 	return !READ_ONCE(h->first);
 }
 
-static inline void __hlist_del(struct hlist_node *n)
+static  void __hlist_del(struct hlist_node *n)
 {
 	struct hlist_node *next = n->next;
 	struct hlist_node **pprev = n->pprev;
@@ -43,14 +44,14 @@ static inline void __hlist_del(struct hlist_node *n)
 		next->pprev = pprev;
 }
 
-static inline void hlist_del(struct hlist_node *n)
+static  void hlist_del(struct hlist_node *n)
 {
 	__hlist_del(n);
 	n->next = NULL;
 	n->pprev = NULL;
 }
 
-static inline void hlist_del_init(struct hlist_node *n)
+static  void hlist_del_init(struct hlist_node *n)
 {
 	if (!hlist_unhashed(n)) {
 		__hlist_del(n);
@@ -58,7 +59,7 @@ static inline void hlist_del_init(struct hlist_node *n)
 	}
 }
 
-static inline void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
+static  void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
 {
 	struct hlist_node *first = h->first;
 	n->next = first;
@@ -69,7 +70,7 @@ static inline void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
 }
 
 /* next must be != NULL */
-static inline void hlist_add_before(struct hlist_node *n,
+static  void hlist_add_before(struct hlist_node *n,
 					struct hlist_node *next)
 {
 	n->pprev = next->pprev;
@@ -78,7 +79,7 @@ static inline void hlist_add_before(struct hlist_node *n,
 	WRITE_ONCE(*(n->pprev), n);
 }
 
-static inline void hlist_add_behind(struct hlist_node *n,
+static  void hlist_add_behind(struct hlist_node *n,
 				    struct hlist_node *prev)
 {
 	n->next = prev->next;
@@ -90,12 +91,12 @@ static inline void hlist_add_behind(struct hlist_node *n,
 }
 
 /* after that we'll appear to be on some hlist and hlist_del will work */
-static inline void hlist_add_fake(struct hlist_node *n)
+static  void hlist_add_fake(struct hlist_node *n)
 {
 	n->pprev = &n->next;
 }
 
-static inline int hlist_fake(struct hlist_node *h)
+static  int hlist_fake(struct hlist_node *h)
 {
 	return h->pprev == &h->next;
 }
@@ -104,7 +105,7 @@ static inline int hlist_fake(struct hlist_node *h)
  * Check whether the node is the only node of the head without
  * accessing head:
  */
-static inline int
+static  int
 hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
 {
 	return !n->next && n->pprev == &h->first;
@@ -114,7 +115,7 @@ hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
  * Move a list from one list head to another. Fixup the pprev
  * reference of the first entry if it exists.
  */
-static inline void hlist_move_list(struct hlist_head *old,
+static  void hlist_move_list(struct hlist_head *old,
 				   struct hlist_head *n)
 {
 	n->first = old->first;

@@ -8,7 +8,7 @@
 
 static struct hash_t s_hash;
 
-static inline unsigned int hash_size(unsigned int size)
+static  unsigned int hash_size(unsigned int size)
 {
     unsigned int i = HASH_TB_MIN_NUM;
 
@@ -23,7 +23,7 @@ static inline unsigned int hash_size(unsigned int size)
     }
 }
 
-static inline void INIT_HASH_TB(hash_tb *tb, unsigned int size)
+static  void INIT_HASH_TB(hash_tb *tb, unsigned int size)
 {
     unsigned int i = 0;
     tb->table = (struct hlist_head *)malloc(size * HLIST_SIZE);
@@ -40,14 +40,14 @@ static inline void INIT_HASH_TB(hash_tb *tb, unsigned int size)
     }
 }
 
-static inline void INIT_HASH(void)
+static  void INIT_HASH(void)
 {
     s_hash.rehashindex = -1;
     INIT_HASH_TB(&s_hash.ht[0], HASH_TB_MIN_NUM);
 
 }
 
-static inline void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
+static  void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
 {
     INIT_HLIST_NODE(&(n->node));
     n->key = k;
@@ -57,7 +57,7 @@ static inline void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
 /*
     hash code generate
 */
-static inline unsigned int hash_code(char* str, unsigned int len)
+static  unsigned int hash_code(char* str, unsigned int len)
 {
     unsigned int hash = len;
 
@@ -86,7 +86,7 @@ unsigned int DJBHash(char *str)
  *
  *
 */
-static inline int rehash_step(struct hash_t *h)
+static  int rehash_step(struct hash_t *h)
 {
     int rehash_num = 8;
     int rehash_step = 3;
@@ -142,7 +142,7 @@ static inline int rehash_step(struct hash_t *h)
     return 0;
 }
 
-static inline int need_expand(struct hash_t *h)
+static  int need_expand(struct hash_t *h)
 {
     if (is_rehashing(h))
     {
@@ -162,7 +162,7 @@ static inline int need_expand(struct hash_t *h)
     return 0;
 }
 
-static inline int need_resize(struct hash_t *h)
+static  int need_resize(struct hash_t *h)
 {
     if (is_rehashing(h))
     {
@@ -181,7 +181,7 @@ static inline int need_resize(struct hash_t *h)
     return 0;
 }
 
-static inline int hash_expand(struct hash_t *h, unsigned int new_size)
+static  int hash_expand(struct hash_t *h, unsigned int new_size)
 {
     hash_tb      t;
     t.size = new_size;
@@ -191,7 +191,7 @@ static inline int hash_expand(struct hash_t *h, unsigned int new_size)
         printf("mem alloc failed\n");
         return 0;
     }
-
+	memset(t.table, 0, new_size * HLIST_SIZE);
     t.used = 0;
     h->ht[1] = t;
     h->rehashindex = 0;
@@ -200,7 +200,7 @@ static inline int hash_expand(struct hash_t *h, unsigned int new_size)
 /*
     get the idx of hash table by mode tabel size
 */
-static inline int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
+static  int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
 {
     unsigned int idx, table_index;
     struct hlist_node *he = NULL;
@@ -232,7 +232,7 @@ static inline int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
 /*
    judge if a key exist, and return hash_table index, else -1
 */
-static inline int hash_is_exist(char *key, struct hash_t *hash)
+static  int hash_is_exist(char *key, struct hash_t *hash)
 {
     return 0;
 }
@@ -308,13 +308,7 @@ int hash_del(char *key, char *val)
 
     for (table_index = 0; table_index < 2; ++table_index)
     {
-        idx = hash % s_hash.ht[0].size;
-        if ((is_rehashing(&s_hash))
-            && (idx < s_hash.rehashindex)
-            && (0 == table_index))
-        {
-            continue;
-        }
+        idx = hash % s_hash.ht[table_index].size;
         node = s_hash.ht[table_index].table[idx].first;
         while(node)
         {
@@ -352,13 +346,8 @@ int hash_find(char *key, char *val)
 
     for (table_index = 0; table_index < 2; ++table_index)
     {
-        idx = hash % s_hash.ht[0].size;
-        if ((is_rehashing(&s_hash))
-            && (idx < s_hash.rehashindex)
-            && (0 == table_index))
-        {
-            continue;
-        }
+        idx = hash % s_hash.ht[table_index].size;
+
         node = s_hash.ht[table_index].table[idx].first;
         while(node)
         {
