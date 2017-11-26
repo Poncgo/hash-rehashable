@@ -7,7 +7,7 @@
 
 #define HASH_TB_MIN_NUM 8
 
-#define HASH_TB_MAX_NUM 0x8000
+#define HASH_TB_MAX_NUM 0x80000000
 
 #define HLIST_SIZE sizeof(struct hlist_head)
 

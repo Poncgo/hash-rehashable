@@ -8,7 +8,7 @@
 
 static struct hash_t s_hash;
 
-static  unsigned int hash_size(unsigned int size)
+static inline unsigned int hash_size(unsigned int size)
 {
     unsigned int i = HASH_TB_MIN_NUM;
 
@@ -23,13 +23,13 @@ static  unsigned int hash_size(unsigned int size)
     }
 }
 
-static  void INIT_HASH_TB(hash_tb *tb, unsigned int size)
+static inline void INIT_HASH_TB(hash_tb *tb, unsigned int size)
 {
     unsigned int i = 0;
     tb->table = (struct hlist_head *)malloc(size * HLIST_SIZE);
     if (NULL == tb->table)
     {
-        printf("%s, %d:table mem initial failed\n", __FILE__, __LINE__);
+      //  printf("%s, %d:table mem initial failed\n", __FILE__, __LINE__);
         return;
     }
     tb->size = size;
@@ -40,14 +40,14 @@ static  void INIT_HASH_TB(hash_tb *tb, unsigned int size)
     }
 }
 
-static  void INIT_HASH(void)
+static inline void INIT_HASH(void)
 {
     s_hash.rehashindex = -1;
     INIT_HASH_TB(&s_hash.ht[0], HASH_TB_MIN_NUM);
 
 }
 
-static  void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
+static inline void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
 {
     INIT_HLIST_NODE(&(n->node));
     n->key = k;
@@ -57,7 +57,7 @@ static  void INIT_HASH_ENTITY(hash_entity *n, char *k, char *v)
 /*
     hash code generate
 */
-static  unsigned int hash_code(char* str, unsigned int len)
+static inline unsigned int hash_code(char* str, unsigned int len)
 {
     unsigned int hash = len;
 
@@ -68,11 +68,11 @@ static  unsigned int hash_code(char* str, unsigned int len)
     return hash;
 }
 
-unsigned int DJBHash(char *str)
+static inline unsigned int DJBHash(char *str)
 {
     unsigned int hash = 5381;
 
-    while (*str)
+    while (*str != '\0')
     {
         hash = ((hash << 5) + hash) + (*str++); /* times 33 */
     }
@@ -86,7 +86,7 @@ unsigned int DJBHash(char *str)
  *
  *
 */
-static  int rehash_step(struct hash_t *h)
+static inline int rehash_step(struct hash_t *h)
 {
     int rehash_num = 8;
     int rehash_step = 3;
@@ -102,8 +102,8 @@ static  int rehash_step(struct hash_t *h)
         // rehash index can't bigger than size
         if (h->rehashindex >= h->ht[0].size)
         {
-            printf("error happened rehashindex %d >= size %d\n",
-                h->rehashindex, h->ht[0].size);
+            //printf("error happened rehashindex %d >= size %d\n",
+           //     h->rehashindex, h->ht[0].size);
                 return -1;
         }
         while(h->ht[0].table[h->rehashindex].first == NULL)
@@ -126,7 +126,7 @@ static  int rehash_step(struct hash_t *h)
 
             node = h->ht[0].table[h->rehashindex].first;
         }
-        h->ht[0].table[h->rehashindex].first = NULL;
+        //h->ht[0].table[h->rehashindex].first = NULL;
         h->rehashindex++;
     }
 
@@ -142,16 +142,16 @@ static  int rehash_step(struct hash_t *h)
     return 0;
 }
 
-static  int need_expand(struct hash_t *h)
+static inline int need_expand(struct hash_t *h)
 {
     if (is_rehashing(h))
     {
-        printf("%s, %d :hash table rehashing\n", __FILE__, __LINE__);
+        //printf("%s, %d :hash table rehashing\n", __FILE__, __LINE__);
         return -1;
     }
     if (h->ht[0].size >= HASH_TB_MAX_NUM)
     {
-        printf("%s, %d:max number reached\n", __FILE__, __LINE__);
+        //printf("%s, %d:max number reached\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -162,33 +162,33 @@ static  int need_expand(struct hash_t *h)
     return 0;
 }
 
-static  int need_resize(struct hash_t *h)
+static inline int need_resize(struct hash_t *h)
 {
     if (is_rehashing(h))
     {
-        printf("%s, %d:hash table rehashing \n", __FILE__, __LINE__);
+        //printf("%s, %d:hash table rehashing \n", __FILE__, __LINE__);
         return -1;
     }
     if (h->ht[0].size <= HASH_TB_MIN_NUM)
     {
-        printf("%s, %d: min num reached\n", __FILE__, __LINE__);
+        //printf("%s, %d: min num reached\n", __FILE__, __LINE__);
         return -1;
     }
-    if (h->ht[0].size * 0.1 < h->ht[0].used)
+    if ((int)(h->ht[0].size * 0.1) > h->ht[0].used)
     {
         return 1;
     }
     return 0;
 }
 
-static  int hash_expand(struct hash_t *h, unsigned int new_size)
+static inline int hash_expand(struct hash_t *h, unsigned int new_size)
 {
     hash_tb      t;
     t.size = new_size;
     t.table = (struct hlist_head *)malloc(new_size * HLIST_SIZE);
     if (NULL == t.table)
     {
-        printf("mem alloc failed\n");
+        //printf("mem alloc failed\n");
         return 0;
     }
 	memset(t.table, 0, new_size * HLIST_SIZE);
@@ -200,7 +200,7 @@ static  int hash_expand(struct hash_t *h, unsigned int new_size)
 /*
     get the idx of hash table by mode tabel size
 */
-static  int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
+static inline int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
 {
     unsigned int idx, table_index;
     struct hlist_node *he = NULL;
@@ -215,7 +215,7 @@ static  int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
             p_entity = (hash_entity *)he;
             if (0 == strcmp(key, p_entity->key))
             {
-                printf("key:%s found in table %d\n", key, table_index);
+                //printf("key:%s found in table %d\n", key, table_index);
                 return -1;
             }
             he = he->next;
@@ -232,7 +232,7 @@ static  int get_hash_idx(char * key, unsigned int hash, struct hash_t *h)
 /*
    judge if a key exist, and return hash_table index, else -1
 */
-static  int hash_is_exist(char *key, struct hash_t *hash)
+static inline int hash_is_exist(char *key, struct hash_t *hash)
 {
     return 0;
 }
@@ -251,7 +251,7 @@ int hash_add(char *key, char *val)
 
     if  ((NULL == val) || (NULL == key))
     {
-        printf( "NULL POINTER of key or val\n");
+       // printf( "NULL POINTER of key or val\n");
         return -1;
     }
 
@@ -267,17 +267,20 @@ int hash_add(char *key, char *val)
 
     if ( 0 > (idx = get_hash_idx(key,hash, &s_hash)))
     {
-        printf( "idx get failed\ns");
+        //printf( "idx get failed\ns");
         return -1;
     }
     // if rehashing ,new entity will put to new table [1]. else table[0] will be choosed.
     tb = is_rehashing(&s_hash) ? (s_hash.ht + 1) : (s_hash.ht);
     p_entity = malloc(sizeof(hash_entity));
-    k = malloc(l_k * sizeof(char));
-    v = malloc(l_v * sizeof(char));
+    k = malloc((l_k + 1) * sizeof(char));
+    v = malloc((l_v + 1) * sizeof(char));
 
     strcpy(k, key);
     strcpy(v, val);
+
+    k[l_k] = '\0';
+    v[l_v] = '\0';
 
     INIT_HASH_ENTITY(p_entity, k, v);
     he = (tb->table + idx);
@@ -298,7 +301,7 @@ int hash_del(char *key, char *val)
 
     if (is_rehashing(&s_hash)) rehash_step(&s_hash);
 
-    if (need_resize(&s_hash))
+    if (1 == need_resize(&s_hash))
     {
         unsigned int new = (s_hash.ht[0].size) >> 1;
         hash_expand(&s_hash, new);
